@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predictive Maintenance</title>
+    <link rel="stylesheet" href="UploadData.css">
+</head>
+<body>
+    <div class="form-container">
+        <h2>Predictive Maintenance</h2>
+        <form id="predictForm">
+            <label>
+                Product Type:
+                <select id="productType">
+                    <option value="">Select a product type</option>
+                    <option value="L">L</option>
+                    <option value="M">M</option>
+                    <option value="H">H</option>
+                </select>
+            </label>
+            <label>
+                Air Temperature [K]:
+                <input type="number" id="airTemperature">
+            </label>
+            <label>
+                Process Temperature [K]:
+                <input type="number" id="processTemperature">
+            </label>
+            <label>
+                Rotational Speed [rpm]:
+                <input type="number" id="rotationalSpeed">
+            </label>
+            <label>
+                Torque [Nm]:
+                <input type="number" id="torque">
+            </label>
+            <label>
+                Tool Wear [min]:
+                <input type="number" id="toolWear">
+            </label>
+            <button type="submit">Predict</button>
+        </form>
+        <div class="predictions-container">
+            <h3>Prediction:</h3>
+            <div id="predictions"></div>
+        </div>
+        <div class="visualization-container">
+            <h3>Visualization:</h3>
+            <img id="visualization" alt="Prediction Visualization" style="display:none;">
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('predictForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                productType: document.getElementById('productType').value,
+                airTemperature: document.getElementById('airTemperature').value,
+                processTemperature: document.getElementById('processTemperature').value,
+                rotationalSpeed: document.getElementById('rotationalSpeed').value,
+                torque: document.getElementById('torque').value,
+                toolWear: document.getElementById('toolWear').value,
+            };
+
+            try {
+                const response = await fetch('http://127.0.0.1:5000/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify([formData]), // Wrap in array for compatibility with backend
+                });
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const result = await response.json();
+                const predictionsContainer = document.getElementById('predictions');
+                predictionsContainer.innerHTML = ''; // Clear previous predictions
+                result.forEach(prediction => {
+                    const predictionDiv = document.createElement('div');
+                    predictionDiv.innerHTML = `
+                        <p><strong>Failure:</strong> ${prediction.failure}</p>
+                        <p><strong>Causes:</strong> ${prediction.causes}</p>
+                        <p><strong>Prevention:</strong> ${prediction.prevention}</p>
+                    `;
+                    predictionsContainer.appendChild(predictionDiv);
+                });
+
+                // Fetch the visualization
+                const visualizationResponse = await fetch('http://127.0.0.1:5000/visualize', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify([formData]), // Same form data for visualization
+                });
+
+                if (!visualizationResponse.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const imageUrl = URL.createObjectURL(await visualizationResponse.blob());
+                const visualizationImg = document.getElementById('visualization');
+                visualizationImg.src = imageUrl;
+                visualizationImg.style.display = 'block';
+
+            } catch (error) {
+                console.error('There was a problem with the fetch operation:', error);
+            }
+        });
+    </script>
+</body>
+</html>
