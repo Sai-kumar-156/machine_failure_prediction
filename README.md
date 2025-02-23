@@ -1,1 +1,1 @@
-# machine_failure_prediction
+# machine_failure_predict
